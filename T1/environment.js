@@ -17,24 +17,28 @@ import { Voxel } from './voxel.js'; // Importando a classe Voxel
 export class Environment {
     
     constructor(height, width) {
-        
-       
         this.height = height;
         this.width = width;
         console.log('Construindo ambiente...');
-
-        // Recebe apenas o plane (grid é adicionado automaticamente ao plane)
+    
         this.plane = createGroundPlaneWired(width, height);
-
-        // Como o grid foi adicionado ao plane, acessamos diretamente a propriedade `children` do plane.
-        this.grid = this.plane.children[0]; // O grid será o primeiro filho do plane.
-
+        this.grid = this.plane.children[0];
         this.plane.material.transparent = true;
-        this.plane.material.opacity = 0;
-
-        this.grid.material.transparent = true;
-        this.grid.material.opacity = true;
-
+        this.plane.material.opacity = 0.3;
+    
+        // Cria o cubo wireframe
+        const wireframeGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const wireframeMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+        this.wireframe = new THREE.LineSegments(
+            new THREE.EdgesGeometry(wireframeGeometry),
+            wireframeMaterial
+        );
+        this.wireframe.position.set(0, 0.5, 0); // Altura padrão inicial
+        this.plane.add(this.wireframe);
+        this.addKeyboardControls()
+    
+        this.currentVoxelType = 0; // Tipo inicial de voxel
+        this.voxelColors = [0x00ff00, 0xffa500, 0xd3d3d3, 0x8b4513, 0xffffff]; // Cores dos tipos
     }
 
     buildPlan() {
@@ -47,38 +51,157 @@ export class Environment {
 
     }
 
+    addKeyboardControls() {
+        window.addEventListener('keydown', (event) => {
+            const step = 1;
+            console.log(event.key)
+            switch (event.key) {
+                case 'ArrowUp':
+                    this.wireframe.position.z -= step;
+                    break;
+                case 'ArrowDown':
+                    this.wireframe.position.z += step;
+                    break;
+                case 'ArrowLeft':
+                    this.wireframe.position.x -= step;
+                    break;
+                case 'ArrowRight':
+                    this.wireframe.position.x += step;
+                    break;
+                case 'PageUp':
+                    this.wireframe.position.y += step;
+                    break;
+                case 'PageDown':
+                    this.wireframe.position.y -= step;
+                    break;
+                case '.':
+                    if (this.currentVoxelType >= 4) {
+                        this.currentVoxelType = 0;
+                        break;
+                    }
+                    this.currentVoxelType++;
+                    break;
+                case ',':
+                    if (this.currentVoxelType <= 0) {
+                        this.currentVoxelType = 4;
+                        break;
+                    }
+                    this.currentVoxelType--;
+                    break;
+                case 'q':
+                case 'Q': // Adicionar voxel
+                    const voxel = new Voxel();
+                    if (this.currentVoxelType === 0) {
+                        voxel.builVoxel1(
+                            this.wireframe.position.x,
+                            this.wireframe.position.y,
+                            this.wireframe.position.z,
+                        );
+                        this.plane.add(voxel.voxel);
+                        break;
+                    }
+                    if (this.currentVoxelType === 1) {
+                        voxel.buildVoxel2(
+                            this.wireframe.position.x,
+                            this.wireframe.position.y,
+                            this.wireframe.position.z,
+                        );
+                        this.plane.add(voxel.voxel);
+                        break;
+                    }
+                    if (this.currentVoxelType === 2) {
+                        voxel.buildVoxel3(
+                            this.wireframe.position.x,
+                            this.wireframe.position.y,
+                            this.wireframe.position.z,
+                        );
+                        this.plane.add(voxel.voxel);
+                        break;
+                    }
+                    if (this.currentVoxelType === 3) {
+                        voxel.buildVoxel4(
+                            this.wireframe.position.x,
+                            this.wireframe.position.y,
+                            this.wireframe.position.z,
+                        );
+                        this.plane.add(voxel.voxel);
+                        break;
+                    }
+                    if (this.currentVoxelType === 4) {
+                        voxel.buildVoxel5(
+                            this.wireframe.position.x,
+                            this.wireframe.position.y,
+                            this.wireframe.position.z,
+                        );
+                        this.plane.add(voxel.voxel);
+                        break;
+                    }
+                case 'e':
+                case 'E': // Remover voxel
+                    this.removeVoxel(
+                        this.wireframe.position.x,
+                        this.wireframe.position.y,
+                        this.wireframe.position.z
+                    );
+                    break;
+            }
+        });
+    }
+
+    addVoxel(x, y, z) {
+        const color = this.voxelColors[this.currentVoxelType];
+        const voxelGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const voxelMaterial = setDefaultMaterial(color);
+        const voxel = new THREE.Mesh(voxelGeometry, voxelMaterial);
+    
+        voxel.position.set(x, y, z);
+        voxel.name = `voxel-${x}-${y}-${z}`; // Nome único baseado na posição
+        this.plane.add(voxel);
+    }
+    
+    removeVoxel(x, y, z) {
+        const voxelName = `voxel-${x}-${y}-${z}`;
+        const voxel = this.plane.getObjectByName(voxelName);
+        if (voxel) {
+            this.plane.remove(voxel);
+        }
+    }
+
     // Function to add a custom tree
-    addCustomTree(x, z) {
+    addCustomTree(x, y, z) {
         const tree = new Tree1(); // Instanciando a classe Tree
         tree.buildTree(); // Construindo a árvore
 
         // Posicione a árvore no local desejado
-        tree.getFoundation().position.set(x, 1.6, z); // Define a posição (base em nível N0)
+        tree.getFoundation().position.set(x, y, z); // Define a posição (base em nível N0)
         tree.getFoundation().scale.set(0.1, 0.1, 0.1);
+        tree.getFoundation().name = `voxel-${x}-${y}-${z}`;
 
         this.plane.add(tree.getFoundation()); // Adiciona a árvore à cena
     }
-
+Q
     // Function to add a custom tree2
-    addCustomTree2(x, z) {
+    addCustomTree2(x, y, z) {
         const tree = new Tree2(); // Instanciando a classe Tree
         tree.buildTree(); // Construindo a árvore
 
         // Posicione a árvore no local desejado
-        tree.getFoundation().position.set(x, 1.6, z); // Define a posição (base em nível N0)
+        tree.getFoundation().position.set(x, y, z); // Define a posição (base em nível N0)
         tree.getFoundation().scale.set(0.1, 0.1, 0.1);
+        tree.getFoundation().name = `voxel-${x}-${y}-${z}`;
 
         this.plane.add(tree.getFoundation()); // Adiciona a árvore à cena
     }
 
     // Function to add a custom tree3
-    addCustomTree3(x, z) {
+    addCustomTree3(x, y, z) {
         const tree = new Tree3(); // Instanciando a classe Tree
         tree.buildTree(); // Construindo a árvore
 
         // Posicione a árvore no local desejado
-        tree.getFoundation().position.set(x, 1.6, z); // Define a posição (base em nível N0)
+        tree.getFoundation().position.set(x, y, z); // Define a posição (base em nível N0)
         tree.getFoundation().scale.set(0.1, 0.1, 0.1);
+        tree.getFoundation().name = `voxel-${x}-${y}-${z}`;
 
         this.plane.add(tree.getFoundation()); // Adiciona a árvore à cena
     }
