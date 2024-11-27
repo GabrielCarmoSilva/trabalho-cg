@@ -13,6 +13,7 @@ import { Tree1 } from "./tree1.js"; // Importando a classe Tree1
 import { Tree2 } from "./tree2.js"; // Importando a classe Tree2
 import { Tree3 } from "./tree3.js"; // Importando a classe Tree3
 import { Voxel } from './voxel.js'; // Importando a classe Voxel
+import GUI from '../libs/util/dat.gui.module.js';
 
 export class Builder {
     
@@ -37,6 +38,7 @@ export class Builder {
         this.wireframe.position.set(0, 0.5, 0); // Altura padrão inicial
         this.plane.add(this.wireframe);
         this.addKeyboardControls()
+        this.addGUI()
     
         this.currentVoxelType = 0; // Tipo inicial de voxel
         this.voxelColors = [0x00ff00, 0xffa500, 0xd3d3d3, 0x8b4513, 0xffffff]; // Cores dos tipos
@@ -55,19 +57,18 @@ export class Builder {
     addKeyboardControls() {
         window.addEventListener('keydown', (event) => {
             const step = 1;
-            console.log(event.key)
             switch (event.key) {
                 case 'ArrowUp':
-                    this.wireframe.position.z -= step;
-                    break;
-                case 'ArrowDown':
                     this.wireframe.position.z += step;
                     break;
+                case 'ArrowDown':
+                    this.wireframe.position.z -= step;
+                    break;
                 case 'ArrowLeft':
-                    this.wireframe.position.x -= step;
+                    this.wireframe.position.x += step;
                     break;
                 case 'ArrowRight':
-                    this.wireframe.position.x += step;
+                    this.wireframe.position.x -= step;
                     break;
                 case 'PageUp':
                     this.wireframe.position.y += step;
@@ -149,8 +150,27 @@ export class Builder {
         });
     }
 
-    addVoxel(x, y, z) {
-        const color = this.voxelColors[this.currentVoxelType];
+    addGUI() {
+        var controls = {
+            filename: '',
+            save: () => {
+                this.saveFile(controls.filename)
+            },
+            load: () => {
+                this.loadFile()
+            }
+        };
+        
+        let gui = new GUI();
+        gui.add(controls, 'filename').name('Insira o nome')
+        gui.add(controls, 'save').name('Salvar Arquivo');
+        gui.add(controls, 'load').name('Carregar Arquivo')
+    }
+
+    addVoxel(x, y, z, voxelColor = undefined) {
+        if (this.plane.getObjectByName(`voxel-${x}-${y}-${z}`)) return
+
+        const color = voxelColor ?? this.voxelColors[this.currentVoxelType];
         const voxelGeometry = new THREE.BoxGeometry(1, 1, 1);
         const voxelMaterial = setDefaultMaterial(color);
         const voxel = new THREE.Mesh(voxelGeometry, voxelMaterial);
@@ -180,7 +200,7 @@ export class Builder {
 
         this.plane.add(tree.getFoundation()); // Adiciona a árvore à cena
     }
-Q
+
     // Function to add a custom tree2
     addCustomTree2(x, y, z) {
         const tree = new Tree2(); // Instanciando a classe Tree
@@ -211,6 +231,46 @@ Q
         return this.plane;
     }
 
+    saveFile(filename) {
+        const data = this.plane.children.filter((voxel) => voxel.name && voxel.name.startsWith('voxel-')).map((voxel) => {
+            return {
+                position: voxel.position,
+                color: voxel.material.color.getHex(),
+            }
+       })
+
+       const file = new Blob([JSON.stringify(data)], { type: 'application/json' })
+       const link = document.createElement('a');
+       link.href = URL.createObjectURL(file);
+       link.download = `${filename.split('.')[0]}.json`;
+       link.click();
+    }
+
+    loadFile() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';  // Aceita apenas arquivos JSON
+        input.onchange = (event) => {
+            const file = event.target.files[0];  // Pega o arquivo selecionado
+            if (file) {
+                if (file.type !== 'application/json') return
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    JSON.parse(e.target.result).map((voxel) => {
+                        voxel && this.addVoxel(
+                            voxel.position.x,
+                            voxel.position.y,
+                            voxel.position.z,
+                            voxel.color
+                        );
+                    });
+                };
+                reader.readAsText(file);
+            }
+        };
+        input.click();
+    }
+
 }
 
 
@@ -235,11 +295,12 @@ const cameraManager = new Camera(renderer, scene);
 const camera = cameraManager.getCurrentCamera();
 const environment = new Builder(50, 50); // Define as dimensões do plano
 
-
 scene.add(environment.getBuilder());
 window.addEventListener('resize', () => {
     onWindowResize(camera, renderer);
 });
+
+
 function animate() {
     requestAnimationFrame(animate);
     cameraManager.update(); // Atualiza a câmera ativa
