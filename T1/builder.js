@@ -54,6 +54,40 @@ export class Builder {
 
     }
 
+    addHeightIndicator(x, y, z) {
+        // Procura um indicador existente na posição
+        const indicatorName = `indicator-${x}-${y}-${z}`;
+        let existingIndicator = this.plane.getObjectByName(indicatorName);
+
+        if (!existingIndicator) {
+            // Cria uma linha pontilhada para indicar a altura
+            const material = new THREE.LineDashedMaterial({
+                color: 0x0000ff,
+                dashSize: 0.2,
+                gapSize: 0.01,
+            });
+            const points = [
+                new THREE.Vector3(x, y, 0),  // Base no plano
+                new THREE.Vector3(x, y, z),  // Ponto final no nível 1
+            ];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geometry, material);
+            line.computeLineDistances(); // Necessário para linhas pontilhadas
+            line.name = indicatorName;
+
+            this.plane.add(line);
+
+        }
+    }
+
+    removeHeightIndicator(x, y, z) {
+        const indicatorName = `indicator-${x}-${y}-${z}`;
+        const indicator = this.plane.getObjectByName(indicatorName);
+        if (indicator) {
+            this.plane.remove(indicator);
+        }
+    }
+
     addKeyboardControls() {
         window.addEventListener('keydown', (event) => {
             const step = 1;
@@ -92,6 +126,7 @@ export class Builder {
                     break;
                 case 'q':
                 case 'Q': // Adicionar voxel
+                this.addHeightIndicator(this.wireframe.position.x, this.wireframe.position.y, this.wireframe.position.z);
                     const voxel = new Voxel();
                     if (this.currentVoxelType === 0) {
                         voxel.builVoxel1(
@@ -140,6 +175,7 @@ export class Builder {
                     }
                 case 'e':
                 case 'E': // Remover voxel
+                this.removeHeightIndicator(this.wireframe.position.x, this.wireframe.position.y, this.wireframe.position.z);
                     this.removeVoxel(
                         this.wireframe.position.x,
                         this.wireframe.position.y,
@@ -288,7 +324,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // Luz padrão
-const light = new THREE.DirectionalLight(0xffffff, 1);
+const light = new THREE.AmbientLight(0xffffff, 1);
 light.position.set(10, 10, 10);
 scene.add(light);
 const cameraManager = new Camera(renderer, scene);
