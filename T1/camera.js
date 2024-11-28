@@ -28,6 +28,8 @@ export class Camera {
         // Câmera de inspeção (OrbitControls)
         this.inspectionCamera = new THREE.PerspectiveCamera(this.fov, this.aspect, this.near, this.far);
         this.inspectionCamera.position.set(0, 30, -70);
+        this.inspectionCamera.up.set(0, 1, 0)
+        this.inspectionCamera.lookAt(new THREE.Vector3(0, 0, 1))
         this.orbitControls = new OrbitControls(this.inspectionCamera, this.renderer.domElement);
         // Efeito de amortecimento nos controles das câmeras
         //this.orbitControls.enableDamping = true;
@@ -35,7 +37,6 @@ export class Camera {
         // Câmera de primeira pessoa (PointerLockControls)
         this.firstPersonCamera = new THREE.PerspectiveCamera(this.fov, this.aspect, this.near, this.far);
         this.firstPersonCamera.position.set(0, 13, 30);
-
         this.pointerLockControls = new PointerLockControls(this.firstPersonCamera, this.renderer.domElement);
 
         // Clona a posição anterior de cada câmera

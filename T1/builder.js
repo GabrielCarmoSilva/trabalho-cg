@@ -27,15 +27,15 @@ export class Builder {
         this.grid = this.plane.children[0];
         this.plane.material.transparent = true;
         this.plane.material.opacity = 0.3;
+
+        var axesHelper = new THREE.AxesHelper( 18 );
+        scene.add( axesHelper );
     
         // Cria o cubo wireframe
         const wireframeGeometry = new THREE.BoxGeometry(1, 1, 1);
-        const wireframeMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
-        this.wireframe = new THREE.LineSegments(
-            new THREE.EdgesGeometry(wireframeGeometry),
-            wireframeMaterial
-        );
-        this.wireframe.position.set(0, 0.5, 0); // Altura padrão inicial
+        const material = setDefaultMaterial();
+        this.wireframe = new THREE.Mesh(wireframeGeometry, material);
+        this.wireframe.position.set(0, 0, 0); // Altura padrão inicial
         this.plane.add(this.wireframe);
         this.addKeyboardControls()
         this.addGUI()
@@ -93,22 +93,22 @@ export class Builder {
             const step = 1;
             switch (event.key) {
                 case 'ArrowUp':
-                    this.wireframe.position.z += step;
+                    this.wireframe.translateZ(step)
                     break;
                 case 'ArrowDown':
-                    this.wireframe.position.z -= step;
+                    this.wireframe.translateZ(step * -1)
                     break;
                 case 'ArrowLeft':
-                    this.wireframe.position.x += step;
+                    this.wireframe.translateX(step)
                     break;
                 case 'ArrowRight':
-                    this.wireframe.position.x -= step;
+                    this.wireframe.translateX(step * -1)
                     break;
                 case 'PageUp':
-                    this.wireframe.position.y += step;
+                    this.wireframe.translateY(step)
                     break;
                 case 'PageDown':
-                    this.wireframe.position.y -= step;
+                    this.wireframe.translateY(step * -1)
                     break;
                 case '.':
                     if (this.currentVoxelType >= 4) {
@@ -183,6 +183,7 @@ export class Builder {
                     );
                     break;
             }
+            console.log(this.wireframe.position)
         });
     }
 
@@ -214,6 +215,7 @@ export class Builder {
         voxel.position.set(x, y, z);
         voxel.name = `voxel-${x}-${y}-${z}`; // Nome único baseado na posição
         this.plane.add(voxel);
+        this.addHeightIndicator(x, y, z);
     }
     
     removeVoxel(x, y, z) {
