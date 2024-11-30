@@ -1,350 +1,296 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../build/jsm/controls/OrbitControls.js';
+import { Camera } from './camera.js';  // Importando a classe Camera
 import {
     initRenderer,
-    initCamera,
     initDefaultBasicLight,
     setDefaultMaterial,
-    InfoBox,
     onWindowResize,
-    createGroundPlaneXZ, createGroundPlaneWired, SecondaryBox
+    createGroundPlaneXZ,
+    createGroundPlaneWired
 } from "../libs/util/util.js";
-import { Tree1 } from "./tree1.js"; // Importando a classe Tree1
-import { Tree2 } from "./tree2.js"; // Importando a classe Tree2
-import { Tree3 } from "./tree3.js"; // Importando a classe Tree3
 import { Voxel } from './voxel.js'; // Importando a classe Voxel
 import GUI from '../libs/util/dat.gui.module.js';
 
-export class Builder {
-    
-    constructor(height, width) {
-        
-        this.height = height;
-        this.width = width;
-        console.log('Construindo ambiente...');
-    
-        this.plane = createGroundPlaneWired(width, height);
-        this.grid = this.plane.children[0];
-        this.plane.material.transparent = true;
-        this.plane.material.opacity = 0.3;
+// Variáveis iniciais
+let scene, renderer, camera, material, light;
+scene = new THREE.Scene();  // Criação da cena principal
+renderer = initRenderer();  // Inicializa o renderizador
 
-        var axesHelper = new THREE.AxesHelper( 18 );
-        scene.add( axesHelper );
-    
-        // Cria o cubo wireframe
-        const wireframeGeometry = new THREE.BoxGeometry(1, 1, 1);
-        const material = setDefaultMaterial();
-        this.wireframe = new THREE.Mesh(wireframeGeometry, material);
-        this.wireframe.position.set(0, 0, 0); // Altura padrão inicial
-        this.plane.add(this.wireframe);
-        this.addKeyboardControls()
-        this.addGUI()
-    
-        this.currentVoxelType = 0; // Tipo inicial de voxel
-        this.voxelColors = [0x00ff00, 0xffa500, 0xd3d3d3, 0x8b4513, 0xffffff]; // Cores dos tipos
-    }
+// Criar material básico e luz
+material = setDefaultMaterial();
+light = initDefaultBasicLight(scene);
 
-    buildPlan() {
-            // Cria um novo voxel
-    const voxel = new Voxel();
-    voxel.builVoxel1();
-    voxel.getFoundation().position.set(0, 0, 0);
-    // Adiciona o voxel ao plano
-    this.plane.add(voxel.getFoundation());
-
-    }
-
-    addHeightIndicator(x, y, z) {
-        // Procura um indicador existente na posição
-        const indicatorName = `indicator-${x}-${y}-${z}`;
-        let existingIndicator = this.plane.getObjectByName(indicatorName);
-
-        if (!existingIndicator) {
-            // Cria uma linha pontilhada para indicar a altura
-            const material = new THREE.LineDashedMaterial({
-                color: 0x0000ff,
-                dashSize: 0.2,
-                gapSize: 0.01,
-            });
-            const points = [
-                new THREE.Vector3(x, y, 0),  // Base no plano
-                new THREE.Vector3(x, y, z),  // Ponto final no nível 1
-            ];
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const line = new THREE.Line(geometry, material);
-            line.computeLineDistances(); // Necessário para linhas pontilhadas
-            line.name = indicatorName;
-
-            this.plane.add(line);
-
-        }
-    }
-
-    removeHeightIndicator(x, y, z) {
-        const indicatorName = `indicator-${x}-${y}-${z}`;
-        const indicator = this.plane.getObjectByName(indicatorName);
-        if (indicator) {
-            this.plane.remove(indicator);
-        }
-    }
-
-    addKeyboardControls() {
-        window.addEventListener('keydown', (event) => {
-            const step = 1;
-            switch (event.key) {
-                case 'ArrowUp':
-                    this.wireframe.translateZ(step)
-                    break;
-                case 'ArrowDown':
-                    this.wireframe.translateZ(step * -1)
-                    break;
-                case 'ArrowLeft':
-                    this.wireframe.translateX(step)
-                    break;
-                case 'ArrowRight':
-                    this.wireframe.translateX(step * -1)
-                    break;
-                case 'PageUp':
-                    this.wireframe.translateY(step)
-                    break;
-                case 'PageDown':
-                    this.wireframe.translateY(step * -1)
-                    break;
-                case '.':
-                    if (this.currentVoxelType >= 4) {
-                        this.currentVoxelType = 0;
-                        break;
-                    }
-                    this.currentVoxelType++;
-                    break;
-                case ',':
-                    if (this.currentVoxelType <= 0) {
-                        this.currentVoxelType = 4;
-                        break;
-                    }
-                    this.currentVoxelType--;
-                    break;
-                case 'q':
-                case 'Q': // Adicionar voxel
-                this.addHeightIndicator(this.wireframe.position.x, this.wireframe.position.y, this.wireframe.position.z);
-                    const voxel = new Voxel();
-                    if (this.currentVoxelType === 0) {
-                        voxel.builVoxel1(
-                            this.wireframe.position.x,
-                            this.wireframe.position.y,
-                            this.wireframe.position.z,
-                        );
-                        this.plane.add(voxel.voxel);
-                        break;
-                    }
-                    if (this.currentVoxelType === 1) {
-                        voxel.buildVoxel2(
-                            this.wireframe.position.x,
-                            this.wireframe.position.y,
-                            this.wireframe.position.z,
-                        );
-                        this.plane.add(voxel.voxel);
-                        break;
-                    }
-                    if (this.currentVoxelType === 2) {
-                        voxel.buildVoxel3(
-                            this.wireframe.position.x,
-                            this.wireframe.position.y,
-                            this.wireframe.position.z,
-                        );
-                        this.plane.add(voxel.voxel);
-                        break;
-                    }
-                    if (this.currentVoxelType === 3) {
-                        voxel.buildVoxel4(
-                            this.wireframe.position.x,
-                            this.wireframe.position.y,
-                            this.wireframe.position.z,
-                        );
-                        this.plane.add(voxel.voxel);
-                        break;
-                    }
-                    if (this.currentVoxelType === 4) {
-                        voxel.buildVoxel5(
-                            this.wireframe.position.x,
-                            this.wireframe.position.y,
-                            this.wireframe.position.z,
-                        );
-                        this.plane.add(voxel.voxel);
-                        break;
-                    }
-                case 'e':
-                case 'E': // Remover voxel
-                this.removeHeightIndicator(this.wireframe.position.x, this.wireframe.position.y, this.wireframe.position.z);
-                    this.removeVoxel(
-                        this.wireframe.position.x,
-                        this.wireframe.position.y,
-                        this.wireframe.position.z
-                    );
-                    break;
-            }
-            console.log(this.wireframe.position)
-        });
-    }
-
-    addGUI() {
-        var controls = {
-            filename: '',
-            save: () => {
-                this.saveFile(controls.filename)
-            },
-            load: () => {
-                this.loadFile()
-            }
-        };
-        
-        let gui = new GUI();
-        gui.add(controls, 'filename').name('Insira o nome')
-        gui.add(controls, 'save').name('Salvar Arquivo');
-        gui.add(controls, 'load').name('Carregar Arquivo')
-    }
-
-    addVoxel(x, y, z, voxelColor = undefined) {
-        if (this.plane.getObjectByName(`voxel-${x}-${y}-${z}`)) return
-
-        const color = voxelColor ?? this.voxelColors[this.currentVoxelType];
-        const voxelGeometry = new THREE.BoxGeometry(1, 1, 1);
-        const voxelMaterial = setDefaultMaterial(color);
-        const voxel = new THREE.Mesh(voxelGeometry, voxelMaterial);
-    
-        voxel.position.set(x, y, z);
-        voxel.name = `voxel-${x}-${y}-${z}`; // Nome único baseado na posição
-        this.plane.add(voxel);
-        this.addHeightIndicator(x, y, z);
-    }
-    
-    removeVoxel(x, y, z) {
-        const voxelName = `voxel-${x}-${y}-${z}`;
-        const voxel = this.plane.getObjectByName(voxelName);
-        if (voxel) {
-            this.plane.remove(voxel);
-        }
-    }
-
-    // Function to add a custom tree
-    addCustomTree(x, y, z) {
-        const tree = new Tree1(); // Instanciando a classe Tree
-        tree.buildTree(); // Construindo a árvore
-
-        // Posicione a árvore no local desejado
-        tree.getFoundation().position.set(x, y, z); // Define a posição (base em nível N0)
-        tree.getFoundation().scale.set(0.1, 0.1, 0.1);
-        tree.getFoundation().name = `voxel-${x}-${y}-${z}`;
-
-        this.plane.add(tree.getFoundation()); // Adiciona a árvore à cena
-    }
-
-    // Function to add a custom tree2
-    addCustomTree2(x, y, z) {
-        const tree = new Tree2(); // Instanciando a classe Tree
-        tree.buildTree(); // Construindo a árvore
-
-        // Posicione a árvore no local desejado
-        tree.getFoundation().position.set(x, y, z); // Define a posição (base em nível N0)
-        tree.getFoundation().scale.set(0.1, 0.1, 0.1);
-        tree.getFoundation().name = `voxel-${x}-${y}-${z}`;
-
-        this.plane.add(tree.getFoundation()); // Adiciona a árvore à cena
-    }
-
-    // Function to add a custom tree3
-    addCustomTree3(x, y, z) {
-        const tree = new Tree3(); // Instanciando a classe Tree
-        tree.buildTree(); // Construindo a árvore
-
-        // Posicione a árvore no local desejado
-        tree.getFoundation().position.set(x, y, z); // Define a posição (base em nível N0)
-        tree.getFoundation().scale.set(0.1, 0.1, 0.1);
-        tree.getFoundation().name = `voxel-${x}-${y}-${z}`;
-
-        this.plane.add(tree.getFoundation()); // Adiciona a árvore à cena
-    }
-
-    getBuilder() {
-        return this.plane;
-    }
-
-    saveFile(filename) {
-        const data = this.plane.children.filter((voxel) => voxel.name && voxel.name.startsWith('voxel-')).map((voxel) => {
-            return {
-                position: voxel.position,
-                color: voxel.material.color.getHex(),
-            }
-       })
-
-       const file = new Blob([JSON.stringify(data)], { type: 'application/json' })
-       const link = document.createElement('a');
-       link.href = URL.createObjectURL(file);
-       link.download = `${filename.split('.')[0]}.json`;
-       link.click();
-    }
-
-    loadFile() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';  // Aceita apenas arquivos JSON
-        input.onchange = (event) => {
-            const file = event.target.files[0];  // Pega o arquivo selecionado
-            if (file) {
-                if (file.type !== 'application/json') return
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    JSON.parse(e.target.result).map((voxel) => {
-                        voxel && this.addVoxel(
-                            voxel.position.x,
-                            voxel.position.y,
-                            voxel.position.z,
-                            voxel.color
-                        );
-                    });
-                };
-                reader.readAsText(file);
-            }
-        };
-        input.click();
-    }
-
-}
-
-
-
-
-
-
-
-
-
-import { Camera } from './camera.js';
-const scene = new THREE.Scene();
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-// Luz padrão
-const light = new THREE.AmbientLight(0xffffff, 1);
-light.position.set(10, 10, 10);
-scene.add(light);
+// Inicializa o gerenciamento de câmeras
 const cameraManager = new Camera(renderer, scene);
-const camera = cameraManager.getCurrentCamera();
-const environment = new Builder(50, 50); // Define as dimensões do plano
+camera = cameraManager.getCurrentCamera();
 
-scene.add(environment.getBuilder());
-window.addEventListener('resize', () => {
-    onWindowResize(camera, renderer);
-});
+// Ouvir mudanças no tamanho da janela
+window.addEventListener('resize', function () { onWindowResize(cameraManager.getCurrentCamera(), renderer); }, false);
 
+// Mostrar eixos
+let axesHelper = new THREE.AxesHelper(12);
+scene.add(axesHelper);
 
-function animate() {
-    requestAnimationFrame(animate);
-    cameraManager.update(); // Atualiza a câmera ativa
-    cameraManager.addMovementListeners();
-    //cameraManager.keyboardUpdate();
-    renderer.render(scene, cameraManager.getCurrentCamera());
+// Criar plano de chão
+let plane = createGroundPlaneWired(50, 50);
+plane.material.opacity = 0.2;
+plane.material.transparent = true;
+scene.add(plane);
+
+// Cria o cubo wireframe
+let wireframeGeometry = new THREE.BoxGeometry(1, 1, 1);
+let wireframeMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+let wireframe = new THREE.LineSegments(
+    new THREE.EdgesGeometry(wireframeGeometry),
+    wireframeMaterial
+);
+wireframe.position.set(0, 0.5, 0); // Altura padrão inicial
+//wireframe.add(axesHelper);
+scene.add(wireframe);
+
+let currentVoxelType = 0; // Tipo inicial de voxel
+let voxelColors = [0x00ff00, 0xffa500, 0xd3d3d3, 0x8b4513, 0xffffff];
+
+addKeyboardControls();
+addVoxel();
+addGUI();
+getBuilder();
+
+function addHeightIndicator(x, y, z) {
+    // Procura um indicador existente na posição
+    let indicatorName = `indicator-${x}-${y}-${z}`;
+    let existingIndicator = plane.getObjectByName(indicatorName);
+
+    if (!existingIndicator) {
+        // Cria uma linha pontilhada para indicar a altura
+        let material = new THREE.LineDashedMaterial({
+            color: 0x0000ff,
+            dashSize: 0.2,
+            gapSize: 0.01,
+        });
+        const points = [
+            new THREE.Vector3(x, 0, z),  // Base no plano
+            new THREE.Vector3(x, y, z),  // Ponto final no nível 1
+        ];
+        let geometry = new THREE.BufferGeometry().setFromPoints(points);
+        let line = new THREE.Line(geometry, material);
+        line.computeLineDistances(); // Necessário para linhas pontilhadas
+        line.name = indicatorName;
+
+        scene.add(line);
+
+    }
 }
 
-animate();
+function removeHeightIndicator(x, y, z) {
+    let indicatorName = `indicator-${x}-${y}-${z}`;
+    let indicator = scene.getObjectByName(indicatorName);
+    if (indicator) {
+        scene.remove(indicator);
+    }
+}
+
+function addKeyboardControls() {
+    window.addEventListener('keydown', (event) => {
+        const step = 1;
+        switch (event.key) {
+            case 'ArrowUp':
+                wireframe.position.z -= step;
+                break;
+            case 'ArrowDown':
+                wireframe.position.z += step;
+                break;
+            case 'ArrowLeft':
+                wireframe.position.x += step;
+                break;
+            case 'ArrowRight':
+                wireframe.position.x -= step;
+                break;
+            case 'PageUp':
+                wireframe.position.y += step;
+                break;
+            case 'PageDown':
+                wireframe.position.y -= step;
+                break;
+            case '.':
+                if (currentVoxelType >= 4) {
+                    currentVoxelType = 0;
+                    break;
+                }
+                currentVoxelType++;
+                break;
+            case ',':
+                if (currentVoxelType <= 0) {
+                    currentVoxelType = 4;
+                    break;
+                }
+                currentVoxelType--;
+                break;
+            case 'q':
+            case 'Q': // Adicionar voxel
+                addHeightIndicator(wireframe.position.x, wireframe.position.y, wireframe.position.z);
+                const voxel = new Voxel();
+                if (currentVoxelType === 0) {
+                    voxel.builVoxel1(
+                        wireframe.position.x,
+                        wireframe.position.y,
+                        wireframe.position.z,
+                    );
+                    scene.add(voxel.voxel);
+                    break;
+                }
+                if (currentVoxelType === 1) {
+                    voxel.buildVoxel2(
+                        wireframe.position.x,
+                        wireframe.position.y,
+                        wireframe.position.z,
+                    );
+                    scene.add(voxel.voxel);
+                    break;
+                }
+                if (currentVoxelType === 2) {
+                    voxel.buildVoxel3(
+                        wireframe.position.x,
+                        wireframe.position.y,
+                        wireframe.position.z,
+                    );
+                    scene.add(voxel.voxel);
+                    break;
+                }
+                if (currentVoxelType === 3) {
+                    voxel.buildVoxel4(
+                        wireframe.position.x,
+                        wireframe.position.y,
+                        wireframe.position.z,
+                    );
+                    scene.add(voxel.voxel);
+                    break;
+                }
+                if (currentVoxelType === 4) {
+                    voxel.buildVoxel5(
+                        wireframe.position.x,
+                        wireframe.position.y,
+                        wireframe.position.z,
+                    );
+                    scene.add(voxel.voxel);
+                    break;
+                }
+            case 'e':
+            case 'E': // Remover voxel
+                removeHeightIndicator(wireframe.position.x, wireframe.position.y, wireframe.position.z);
+                removeVoxel(
+                    wireframe.position.x,
+                    wireframe.position.y,
+                    wireframe.position.z
+                );
+                break;
+        }
+    });
+}
+
+function addGUI() {
+    var controls = {
+        filename: '',
+        save: () => {
+            saveFile(controls.filename)
+        },
+        load: () => {
+            loadFile()
+        }
+    };
+
+    let gui = new GUI();
+    gui.add(controls, 'filename').name('Insira o nome')
+    gui.add(controls, 'save').name('Salvar Arquivo');
+    gui.add(controls, 'load').name('Carregar Arquivo')
+}
+
+function addVoxel(x, y, z, voxelColor = undefined) {
+    if (plane.getObjectByName(`voxel-${x}-${y}-${z}`)) return
+
+    const color = voxelColor ?? voxelColors[currentVoxelType];
+    const voxelGeometry = new THREE.BoxGeometry(1, 1, 1);
+    const voxelMaterial = setDefaultMaterial(color);
+    const voxel = new THREE.Mesh(voxelGeometry, voxelMaterial);
+
+    voxel.position.set(x, y, z);
+    voxel.name = `voxel-${x}-${y}-${z}`; // Nome único baseado na posição
+    scene.add(voxel);
+}
+
+function removeVoxel(x, y, z) {
+    const voxelName = `voxel-${x}-${y}-${z}`;
+    const voxel = scene.getObjectByName(voxelName);
+    if (voxel) {
+        scene.remove(voxel);
+    }
+}
+
+function getBuilder() {
+    return plane;
+}
+
+function saveFile(filename) {
+    const data = scene.children.filter((voxel) => voxel.name && voxel.name.startsWith('voxel-')).map((voxel) => {
+        return {
+            position: voxel.position,
+            color: voxel.material.color.getHex(),
+        }
+    })
+
+    const file = new Blob([JSON.stringify(data)], { type: 'application/json' })
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(file);
+    link.download = `${filename.split('.')[0]}.json`;
+    link.click();
+}
+
+function loadFile() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';  // Aceita apenas arquivos JSON
+    input.onchange = (event) => {
+        const file = event.target.files[0];  // Pega o arquivo selecionado
+        if (file) {
+            console.log(file)
+            if (file.type !== 'application/json') return
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                JSON.parse(e.target.result).map((voxel) => {
+                    voxel && addVoxel(
+                        voxel.position.x,
+                        voxel.position.y,
+                        voxel.position.z,
+                        voxel.color
+                    );
+                    addHeightIndicator(voxel.position.x, voxel.position.y, voxel.position.z);
+                });
+            };
+            reader.readAsText(file);
+        }
+    };
+    input.click();
+}
+
+// Função de renderização
+function render() {
+    requestAnimationFrame(render);
+
+    // Atualizar o movimento da câmera
+    cameraManager.update();
+
+    // Atualiza os controles de câmera de inspeção
+    if (cameraManager.isInspectionMode) {
+        cameraManager.orbitControls.update(); // Atualiza os controles da câmera de inspeção
+    }
+
+    // Renderiza a cena com a câmera atual
+    camera = cameraManager.getCurrentCamera();  // Atualiza a câmera ativa
+    renderer.render(scene, camera);
+}
+
+// Ouve eventos de movimentação da câmera FPV
+cameraManager.addMovementListeners();
+
+render();

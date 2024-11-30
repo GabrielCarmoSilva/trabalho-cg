@@ -20,10 +20,10 @@ export class Camera {
         this.scene = scene;
 
         // Configurações comuns para ambas as câmeras
-        this.fov = 75;
+        this.fov = 45;
         this.aspect = window.innerWidth / window.innerHeight;
-        this.near = 0.1;
-        this.far = 500;
+        this.near = 1;
+        this.far = 100;
 
         // Câmera de inspeção (OrbitControls)
         this.inspectionCamera = new THREE.PerspectiveCamera(this.fov, this.aspect, this.near, this.far);
