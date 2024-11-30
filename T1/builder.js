@@ -28,10 +28,6 @@ camera = cameraManager.getCurrentCamera();
 // Ouvir mudanças no tamanho da janela
 window.addEventListener('resize', function () { onWindowResize(cameraManager.getCurrentCamera(), renderer); }, false);
 
-// Mostrar eixos
-let axesHelper = new THREE.AxesHelper(12);
-scene.add(axesHelper);
-
 // Criar plano de chão
 let plane = createGroundPlaneWired(50, 50);
 plane.material.opacity = 0.2;
@@ -46,7 +42,6 @@ let wireframe = new THREE.LineSegments(
     wireframeMaterial
 );
 wireframe.position.set(0, 0.5, 0); // Altura padrão inicial
-//wireframe.add(axesHelper);
 scene.add(wireframe);
 
 let currentVoxelType = 0; // Tipo inicial de voxel
