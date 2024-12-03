@@ -201,7 +201,7 @@ export class Builder {
     }
 
     addVoxel(x, y, z, voxelColor = undefined) {
-        if (plane.getObjectByName(`voxel-${x}-${y}-${z}`)) return
+        if (scene.getObjectByName(`voxel-${x}-${y}-${z}`)) return
 
         const color = voxelColor ?? this.voxelColors[this.currentVoxelType];
         const voxelGeometry = new THREE.BoxGeometry(1, 1, 1);
