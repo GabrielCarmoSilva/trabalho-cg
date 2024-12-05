@@ -5,7 +5,8 @@ import {
     setDefaultMaterial,
     InfoBox,
     onWindowResize,
-} from "../libs/util/util.js";
+} from "/libs/util/util.js";
+import BlockColorMap from './constants/dictionaries/BlockColorMap.js';
 
 
 export class Voxel {
@@ -26,6 +27,7 @@ export class Voxel {
         this.voxel.position.y = y;
         this.voxel.position.z = z;
         this.voxel.name = `voxel-${x}-${y}-${z}`;
+        this.voxel.type = 1;
     }
 
     buildVoxel2(x, y, z) {
@@ -37,18 +39,21 @@ export class Voxel {
         this.voxel.position.y = y;
         this.voxel.position.z = z;
         this.voxel.name = `voxel-${x}-${y}-${z}`;
+        this.voxel.type = 2;
+
 
     }
 
     buildVoxel3(x, y, z) {
 
         const voxel3Material = setDefaultMaterial(0xd3d3d3);
-
         this.voxel = new THREE.Mesh(this.voxelGeometry, voxel3Material);
         this.voxel.position.x = x;
         this.voxel.position.y = y;
         this.voxel.position.z = z;
         this.voxel.name = `voxel-${x}-${y}-${z}`;
+        this.voxel.type = 3;
+
     }
 
     buildVoxel4(x, y, z) {
@@ -60,6 +65,8 @@ export class Voxel {
         this.voxel.position.y = y;
         this.voxel.position.z = z;
         this.voxel.name = `voxel-${x}-${y}-${z}`;
+        this.voxel.type = 4;
+
 
     }
 
@@ -72,6 +79,22 @@ export class Voxel {
         this.voxel.position.y = y;
         this.voxel.position.z = z;
         this.voxel.name = `voxel-${x}-${y}-${z}`;
+        this.voxel.type = 5;
+
+    }
+
+    buildVoxel(x ,y ,z ,type){
+        const color = BlockColorMap[type];
+        const voxelMaterial = setDefaultMaterial(color);
+
+        this.voxel = new THREE.Mesh(this.voxelGeometry, voxelMaterial);
+        this.voxel.position.x = x;
+        this.voxel.position.y = y;
+        this.voxel.position.z = z;
+        this.voxel.name = `voxel-${x}-${y}-${z}`;
+
+        this.voxel.type = type;
+
     }
 
     getFoundation() {

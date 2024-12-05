@@ -7,9 +7,9 @@ import {
     InfoBox,
     onWindowResize,
     createGroundPlaneXZ
-} from "../libs/util/util.js";
+} from "/libs/util/util.js";
 import { Voxel } from './voxel.js'; // Importando a classe Voxel
-import GUI from '../libs/util/dat.gui.module.js';
+import GUI from '/libs/util/dat.gui.module.js';
 import { Camera } from './camera.js';
 
 
@@ -210,6 +210,7 @@ export class Builder {
 
         voxel.position.set(x, y, z);
         voxel.name = `voxel-${x}-${y}-${z}`; // Nome único baseado na posição
+        voxel.type = this.currentVoxelType;
         scene.add(voxel);
     }
 
@@ -230,6 +231,7 @@ export class Builder {
             return {
                 position: voxel.position,
                 color: voxel.material.color.getHex(),
+                type: voxel.type
             }
         })
 
